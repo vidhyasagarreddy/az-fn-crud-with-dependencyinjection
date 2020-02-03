@@ -14,9 +14,13 @@ namespace UserManagement
     public class UserManagerFunction
     {
         private readonly UserService userService;
-        public UserManagerFunction(UserService userService)
+
+        private readonly IAccessTokenProvider accessTokenProvider;
+
+        public UserManagerFunction(UserService userService, IAccessTokenProvider accessTokenProvider)
         {
             this.userService = userService;
+            this.accessTokenProvider = accessTokenProvider;
         }
 
         [FunctionName("ListUsers")]
@@ -24,7 +28,13 @@ namespace UserManagement
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users")] HttpRequest req,
             ILogger log)
         {
-            return userService.GetAll();
+            var result = accessTokenProvider.ValidateToken(req);
+            if (result.IsValid)
+            {
+                return userService.GetAll();
+            }
+
+            throw new UnauthorizedUserException();
         }
 
         [FunctionName("CreateUser")]
